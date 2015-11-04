@@ -1,3 +1,24 @@
+## rostful_node (indigo) - 0.0.7-0
+
+The packages in the `rostful_node` repository were released into the `indigo` distro by running `/usr/bin/bloom-release --ros-distro indigo --track indigo rostful_node` on `Wed, 04 Nov 2015 09:08:41 -0000`
+
+The `rostful_node` package was released.
+
+Version of package(s) in repository `rostful_node`:
+- upstream repository: https://github.com/asmodehn/rostful-node.git
+- release repository: unknown
+- rosdistro version: `null`
+- old version: `0.0.3-2`
+- new version: `0.0.7-0`
+
+Versions of tools used:
+- bloom version: `0.5.20`
+- catkin_pkg version: `0.2.10`
+- rosdep version: `0.11.4`
+- rosdistro version: `0.4.2`
+- vcstools version: `0.1.38`
+
+
 ## rostful_node (indigo) - 0.0.3-2
 
 The packages in the `rostful_node` repository were released into the `indigo` distro by running `/usr/bin/bloom-release --rosdistro indigo --track indigo rostful_node` on `Wed, 01 Jul 2015 09:27:25 -0000`
