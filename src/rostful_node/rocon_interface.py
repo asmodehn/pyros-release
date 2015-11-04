@@ -7,18 +7,23 @@ import threading
 import roslib
 import rospy
 
+#TODO : detect rocon based on running ros system, not based on python modules...
+# we might want to import all that is needed or mark them as dependencies.
 _ROCON = False
 try:
     from rocon_interactions.rapp_watcher import RappWatcher
-    from .interaction_watcher import InteractionWatcher
-
+    from rocon_app_manager.rapp import Rapp
     import rocon_app_manager_msgs.msg as rocon_app_manager_msgs
+    import rocon_app_manager_msgs.srv as rocon_app_manager_srvs
 
     _ROCON = True
 except Exception, e:
     rospy.logwarn('Missing rocon codebase. Rocon features disabled')
 
-
+from roconinterface import InteractionWatcher
+from rosinterface import ServiceBack
+from rosinterface import message_conversion as msgconv
+import rosservice, rostopic
 import ast
 
 """
@@ -26,6 +31,7 @@ Interface with ROCON.
 Gather rocon information and store them ( as dict to be serialized to json easily by the rostful server ) TODO
 No inheritance to make sure destructor is called properly.
 """
+# TODO : fix this to work with gopher branch of rocon
 class RoconInterface(object):
 
     def __init__(self, ros_interface):
@@ -48,8 +54,7 @@ class RoconInterface(object):
 
         if _ROCON:
             #TODO : Rapp Watcher shouldnt even get started when we are running on concert. It s useful only on Robot.
-            self.rapp_watcher = RappWatcher( self._namespaces_change_cb, self._available_rapps_list_changed, self._running_rapp_status_changed, silent_timeout=True)
-            self.rapp_watcher.start()
+            self.rapp_watcher = RappWatcher(self._running_rapp_status_changed, silent_timeout=True)
 
             self.expose_rapps(rapps_ns_args)
 
@@ -100,7 +105,7 @@ class RoconInterface(object):
 
         def _available_rapps_list_changed(self, namespace, added_available_rapps, removed_available_rapps):
             namespace = namespace.strip("/") # remove potential parasits characters #TODO : check absolute/relative naming
-            if namespace in self.rapps_namespaces.keys() :
+            if namespace in self.rapps_namespaces.keys():
                 for k, v in added_available_rapps.iteritems():
                     self.rapps_namespaces[namespace][k] = v
                     rospy.loginfo('found rapp in %r : %r', namespace, k)
@@ -166,7 +171,47 @@ class RoconInterface(object):
                     rospy.loginfo('Removed Rapp Namespace %s', rapp_ns)
 
         #Updating the list of Rapps Namespaces
-        self.rapps_namespaces_args = [ n.strip("/") for n in rapp_namespaces ]  # normalizing ns names #TODO : check absolute/relative naming
+        self.rapps_namespaces_args = [n.strip("/") for n in rapp_namespaces]  # normalizing ns names
+        # TODO : check absolute/relative naming
+
+    def start_rapp(self, rapp_ns, rapp_name):
+        try:
+            #fixing namespace
+            if not rapp_ns.startswith("/"):
+                rapp_ns = "/" + rapp_ns
+            if not rapp_ns.endswith("/"):
+                rapp_ns += "/"
+
+            ret_msg = self.rapp_watcher.start_rapp(rapp_ns, rocon_app_manager_srvs.StartRappRequest(name=rapp_name))
+            output_data = msgconv.extract_values(ret_msg) if ret_msg else None
+
+            return output_data
+        except rospy.ServiceException, e:
+            print "Rapp start call failed: %r" % e
+
+    def stop_rapp(self):
+        try:
+            # hack
+            # TODO : fix it. only one namespae on robot. only one rapp running at a time on robot
+            rapp_ns = self.rapps_namespaces.keys()[0]
+            #fixing namespace
+            if not rapp_ns.startswith("/"):
+                rapp_ns = "/" + rapp_ns
+            if not rapp_ns.endswith("/"):
+                rapp_ns += "/"
+
+            ret_msg = self.rapp_watcher.stop_rapp(rapp_ns, rocon_app_manager_srvs.StopRappRequest())
+            output_data = msgconv.extract_values(ret_msg) if ret_msg else None
+
+            return output_data
+        except rospy.ServiceException, e:
+            print "Rapp stop call failed: %r" % e
+
+
+
+    def is_running_rapp(self, rapp_name):
+        pass
+
 
     def get_interactions(self):
         return self.interactions
